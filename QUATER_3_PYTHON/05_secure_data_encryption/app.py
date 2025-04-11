@@ -1,16 +1,16 @@
-import streamlit as st # For web app interface
+import streamlit as st  # For web app interface
 import hashlib  # For password hashing
-import json # For data storage
-import os # For file handling
-import time # For time management
-from cryptography.fernet import Fernet # For encryption/decryption 
-from base64 import urlsafe_b64encode # For key generation
-from hashlib import pbkdf2_hmac # For password hashing
+import json  # For data storage
+import os  # For file handling
+import time  # For time management
+from cryptography.fernet import Fernet  # For encryption/decryption
+from base64 import urlsafe_b64encode  # For key generation
+from hashlib import pbkdf2_hmac  # For password hashing
 
 # Constants
 DATA_FILE = 'secure_data.json'
 SALT = b"secure_salt_value"
-LOCKOUT_DURATION = 60  
+LOCKOUT_DURATION = 60  # Lockout time in seconds
 
 # Session State Init
 if "authenticated_user" not in st.session_state:
@@ -34,22 +34,24 @@ def save_data(data):
         json.dump(data, f)
 
 def generate_key(password):
+    # Generate a 32-byte key using password and pbkdf2_hmac
     key = pbkdf2_hmac('sha256', password.encode(), SALT, 100000)
-    return urlsafe_b64encode(key)
+    return urlsafe_b64encode(key[:32])  # Ensure it's exactly 32 bytes for Fernet
 
 def hash_password(password):
     return hashlib.pbkdf2_hmac('sha256', password.encode(), SALT, 100000).hex()
 
 def encrypt_text(text, key):
-    cipher = Fernet(generate_key(key))
-    return cipher.encrypt(text.encode()).decode()
+    cipher = Fernet(generate_key(key))  # Generate the correct key for Fernet
+    return cipher.encrypt(text.encode()).decode()  # Encrypt the text
 
 def decrypt_text(encrypted_text, key):
     try:
-        cipher = Fernet(generate_key(key))
-        return cipher.decrypt(encrypted_text.encode()).decode()
-    except Exception:
-        return None
+        cipher = Fernet(generate_key(key))  # Generate the correct key for Fernet
+        return cipher.decrypt(encrypted_text.encode()).decode()  # Decrypt the text
+    except Exception as e:
+        st.error(f"Error during decryption: {e}")  # Display the error message
+        return None  # Return None if decryption fails
 
 # Load existing data
 stored_data = load_data()
